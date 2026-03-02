@@ -1,30 +1,67 @@
-# Curso / Taller de Agentes de IA
+# Taller de Agentes de IA
 
-Este repositorio contiene los proyectos y materiales para un taller práctico de 3 clases enfocado en el desarrollo, orquestación y despliegue de agentes de Inteligencia Artificial.
+Repositorio con los proyectos de un taller practico de 3 clases enfocado en desarrollo, orquestacion y despliegue de agentes de Inteligencia Artificial usando TypeScript y AI SDK v6.
 
-## Descripción del Proyecto
+## Estructura del Repositorio
 
-A lo largo de este curso, exploraremos diferentes arquitecturas y casos de uso de agentes de IA. Comenzaremos desde la creación de chatbots de un solo agente con conocimientos específicos, avanzaremos hacia la automatización de infraestructura utilizando sistemas multi-agente (DevOps), y finalmente integraremos capacidades avanzadas mediante el uso de Skills y el protocolo MCP (Model Context Protocol).
+```
+agents/
+├── clase-1/   ── Chatbot Pokedex (agente unico)
+├── clase-2/   ── Infrastructure Orchestrator (multi-agente)
+└── clase-3/   ── (proximamente)
+```
 
-## Estructura de las Clases
+## Clases
 
-### Clase 1: Chatbot Funcional (Agente Especialista)
-**Objetivo:** Desarrollar y desplegar un chatbot interactivo.
-*   **Descripción:** En esta primera clase construiremos un agente especializado en un dominio específico. El objetivo será levantar un chatbot que actúe como un experto y pueda responder de manera fluida preguntas detalladas sobre el universo de los Pokemones. 
+### [Clase 1 — Pokedex AI Agent](clase-1/)
 
-### Clase 2: Operaciones Multi-Agente (DevOps)
-**Objetivo:** Automatización de infraestructura con múltiples agentes.
-*   **Descripción:** Aplicaremos el trabajo colaborativo entre agentes al área de operaciones (DevOps). Implementaremos un sistema multi-agente capaz de provisionar (levantar) una Máquina Virtual (VM) de manera autónoma, para luego ingresar y ejecutar diversas configuraciones internas, dejando el entorno operativo y listo para su uso.
+Chatbot con un agente AI que actua como el Profesor Oak, especializado en datos Pokemon con persistencia de conversaciones.
 
-### Clase 3: Agentes Avanzados (Skills y MCP)
-**Objetivo:** Extender las capacidades de los agentes usando flujos complejos.
-*   **Descripción:** La clase final se enfoca en la integración avanzada de herramientas. Implementaremos un sistema multi-agente que utilice y coordine diversas *Skills* (habilidades predefinidas). Además, trabajaremos con el protocolo MCP, levantando nuestro propio servidor para dotar a los agentes de contexto y herramientas externas de forma estandarizada.
+- **Arquitectura:** 1 agente (`ToolLoopAgent`) con 1 tool (`obtener_datos_pokemon`)
+- **Stack:** Express 5, AI SDK v6, OpenAI gpt-4o-mini, Valkey/Redis, PokeAPI
+- **Puerto:** http://localhost:3000
 
-## Requisitos Previos e Instalación
+### [Clase 2 — Infrastructure Orchestrator](clase-2/)
 
-Para este taller utilizaremos **TypeScript** como lenguaje principal. TypeScript es una excelente elección para el desarrollo de agentes de IA porque:
-1.  **Tipado estático:** Ayuda a prevenir errores comunes al manejar respuestas complejas de los LLM (como JSON estructurados).
-2.  **Ecosistema:** Las principales librerías de IA (como LangChain.js, Vercel AI SDK, y los SDKs del Model Context Protocol) tienen soporte de primera clase para TypeScript.
-3.  **Integración:** Es ideal tanto para el backend (Node.js/Deno/Bun) como para construir interfaces web para interactuar con los agentes.
+Orquestador multi-agente que provisiona una VM Ubuntu 24.04 con 7 servicios usando agentes AI autonomos que ejecutan herramientas semanticas via SSH.
 
-*(La información exacta de configuración, instalación de Node.js/Bun y dependencias se irá agregando a medida que se desarrollen las clases).*
+- **Arquitectura:** 1 orquestador + 1 VM agent + 7 resource agents AI en paralelo con reintentos
+- **Stack:** Express 5, AI SDK v6, OpenAI, node-ssh, Vagrant + VirtualBox, SSE
+- **Servicios:** PostgreSQL, Redis, RabbitMQ, Node.js, pnpm, Docker, SSH Config
+- **Puerto:** http://localhost:4000
+
+### Clase 3 — Agentes Avanzados (Skills y MCP)
+
+*Proximamente.* Sistema multi-agente con Skills y protocolo MCP.
+
+## Requisitos
+
+- Node.js 22+
+- pnpm
+- OpenAI API key
+- Vagrant + VirtualBox (solo clase 2)
+- Valkey/Redis (solo clase 1)
+
+## Quick Start
+
+```bash
+# Clase 1
+cd clase-1
+cp .env.example .env    # agregar OPENAI_API_KEY
+pnpm install
+pnpm start              # http://localhost:3000
+
+# Clase 2
+cd clase-2
+cp .env.example .env    # agregar OPENAI_API_KEY
+pnpm install
+pnpm start              # http://localhost:4000
+```
+
+## Stack
+
+- **Lenguaje:** TypeScript + tsx (ejecucion directa sin build)
+- **AI:** [AI SDK v6](https://ai-sdk.dev) + OpenAI (`generateText`, `ToolLoopAgent`, `stepCountIs`)
+- **Server:** Express 5
+- **Runtime:** Node.js 22+
+- **Package Manager:** pnpm
