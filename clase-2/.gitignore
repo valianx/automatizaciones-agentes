@@ -14,3 +14,5 @@ dist-ssr
 *.local
 .vagrant
 .vagrant/
+agent-state.json
+reports/

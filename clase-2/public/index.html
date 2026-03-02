@@ -177,12 +177,13 @@
         }
 
         .agent-card[data-status="running"] {
-            border-color: var(--green-primary);
-            box-shadow: 0 0 20px var(--green-glow);
+            border-color: var(--yellow-warning);
+            box-shadow: 0 0 20px rgba(255, 187, 51, 0.15);
         }
 
         .agent-card[data-status="success"] {
-            border-color: var(--green-dim);
+            border-color: var(--green-primary);
+            box-shadow: 0 0 20px var(--green-glow);
         }
 
         .agent-card[data-status="error"] {
@@ -197,6 +198,29 @@
             align-items: center;
             gap: 12px;
             border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .agent-header:hover {
+            background: rgba(22, 36, 32, 0.8);
+        }
+
+        .agent-toggle {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            transition: transform 0.2s ease;
+            margin-left: 4px;
+        }
+
+        .agent-card.collapsed .agent-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .agent-card.collapsed .agent-logs {
+            height: 0;
+            padding: 0 14px;
+            overflow: hidden;
         }
 
         .agent-icon {
@@ -237,16 +261,16 @@
         }
 
         .agent-badge[data-status="running"] {
-            background: rgba(0, 255, 136, 0.1);
-            color: var(--green-primary);
-            border: 1px solid var(--green-primary);
+            background: rgba(255, 187, 51, 0.1);
+            color: var(--yellow-warning);
+            border: 1px solid var(--yellow-warning);
             animation: pulse-badge 1.5s ease-in-out infinite;
         }
 
         .agent-badge[data-status="success"] {
-            background: rgba(0, 204, 106, 0.15);
-            color: var(--green-dim);
-            border: 1px solid var(--green-dim);
+            background: rgba(0, 255, 136, 0.15);
+            color: var(--green-primary);
+            border: 1px solid var(--green-primary);
         }
 
         .agent-badge[data-status="error"] {
@@ -269,8 +293,13 @@
         .agent-progress-fill {
             height: 100%;
             width: 0%;
-            background: var(--green-primary);
+            background: var(--yellow-warning);
             transition: width 0.5s ease;
+            box-shadow: 0 0 8px rgba(255, 187, 51, 0.3);
+        }
+
+        .agent-card[data-status="success"] .agent-progress-fill {
+            background: var(--green-primary);
             box-shadow: 0 0 8px var(--green-glow);
         }
 
@@ -279,23 +308,17 @@
             box-shadow: 0 0 8px rgba(255, 68, 87, 0.3);
         }
 
-        /* Logs */
+        /* Bitácora de logs */
         .agent-logs {
-            max-height: 0;
+            height: 120px;
             overflow-y: auto;
             font-family: var(--font-mono);
-            font-size: 0.75rem;
-            line-height: 1.7;
+            font-size: 0.72rem;
+            line-height: 1.6;
             color: var(--text-secondary);
             background: var(--bg-input);
-            transition: max-height 0.3s ease;
-        }
-
-        .agent-card[data-status="running"] .agent-logs,
-        .agent-card[data-status="success"] .agent-logs,
-        .agent-card[data-status="error"] .agent-logs {
-            max-height: 180px;
-            padding: 12px 16px;
+            padding: 10px 14px;
+            border-top: 1px solid rgba(30, 58, 47, 0.3);
         }
 
         .agent-logs::-webkit-scrollbar {
@@ -427,6 +450,87 @@
         .agent-card {
             animation: fadeIn 0.4s ease;
         }
+
+        /* ── Retry Button ── */
+        .btn-retry {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid var(--red-error);
+            background: rgba(255, 68, 87, 0.1);
+            color: var(--red-error);
+            font-size: 14px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            padding: 0;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .btn-retry:hover {
+            background: var(--red-error);
+            color: #000;
+        }
+
+        .agent-card[data-status="error"] .btn-retry {
+            display: flex;
+        }
+
+        /* ── SSH Command Box ── */
+        .ssh-command-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+        }
+
+        .ssh-command-box > code {
+            flex: 1;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--green-primary);
+            user-select: all;
+        }
+
+        .ssh-password {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .ssh-password code {
+            color: var(--yellow-warning);
+        }
+
+        .btn-copy {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .btn-copy:hover {
+            border-color: var(--green-primary);
+            color: var(--green-primary);
+        }
+
+        .btn-copy.copied {
+            border-color: var(--green-dim);
+            color: var(--green-dim);
+        }
     </style>
 </head>
 
@@ -483,6 +587,7 @@
                 <div class="agent-header">
                     <div class="agent-icon">&#128024;</div>
                     <span class="agent-name">PostgreSQL</span>
+                    <button class="btn-retry" title="Reintentar" onclick="retryAgent(event, 'postgresql')">&#8635;</button>
                     <span class="agent-badge" data-status="idle">IDLE</span>
                 </div>
                 <div class="agent-progress"><div class="agent-progress-fill"></div></div>
@@ -493,6 +598,7 @@
                 <div class="agent-header">
                     <div class="agent-icon">&#9889;</div>
                     <span class="agent-name">Redis</span>
+                    <button class="btn-retry" title="Reintentar" onclick="retryAgent(event, 'redis')">&#8635;</button>
                     <span class="agent-badge" data-status="idle">IDLE</span>
                 </div>
                 <div class="agent-progress"><div class="agent-progress-fill"></div></div>
@@ -503,6 +609,7 @@
                 <div class="agent-header">
                     <div class="agent-icon">&#128048;</div>
                     <span class="agent-name">RabbitMQ</span>
+                    <button class="btn-retry" title="Reintentar" onclick="retryAgent(event, 'rabbitmq')">&#8635;</button>
                     <span class="agent-badge" data-status="idle">IDLE</span>
                 </div>
                 <div class="agent-progress"><div class="agent-progress-fill"></div></div>
@@ -513,6 +620,7 @@
                 <div class="agent-header">
                     <div class="agent-icon">&#9881;</div>
                     <span class="agent-name">Node.js</span>
+                    <button class="btn-retry" title="Reintentar" onclick="retryAgent(event, 'nodejs')">&#8635;</button>
                     <span class="agent-badge" data-status="idle">IDLE</span>
                 </div>
                 <div class="agent-progress"><div class="agent-progress-fill"></div></div>
@@ -523,6 +631,7 @@
                 <div class="agent-header">
                     <div class="agent-icon">&#128230;</div>
                     <span class="agent-name">pnpm</span>
+                    <button class="btn-retry" title="Reintentar" onclick="retryAgent(event, 'pnpm')">&#8635;</button>
                     <span class="agent-badge" data-status="idle">IDLE</span>
                 </div>
                 <div class="agent-progress"><div class="agent-progress-fill"></div></div>
@@ -533,6 +642,18 @@
                 <div class="agent-header">
                     <div class="agent-icon">&#128272;</div>
                     <span class="agent-name">SSH Config</span>
+                    <button class="btn-retry" title="Reintentar" onclick="retryAgent(event, 'ssh-config')">&#8635;</button>
+                    <span class="agent-badge" data-status="idle">IDLE</span>
+                </div>
+                <div class="agent-progress"><div class="agent-progress-fill"></div></div>
+                <div class="agent-logs"></div>
+            </div>
+
+            <div class="agent-card" data-agent="docker" data-status="idle">
+                <div class="agent-header">
+                    <div class="agent-icon">&#128051;</div>
+                    <span class="agent-name">Docker</span>
+                    <button class="btn-retry" title="Reintentar" onclick="retryAgent(event, 'docker')">&#8635;</button>
                     <span class="agent-badge" data-status="idle">IDLE</span>
                 </div>
                 <div class="agent-progress"><div class="agent-progress-fill"></div></div>
@@ -543,6 +664,11 @@
         <!-- Connection Info (visible after success) -->
         <div class="connection-info" id="connection-info">
             <h3>&#128279; Datos de conexion</h3>
+            <div class="ssh-command-box">
+                <code id="ssh-cmd">ssh vagrant@localhost -p 2222</code>
+                <span class="ssh-password">password: <code>vagrant</code></span>
+                <button class="btn-copy" onclick="copySSH()" title="Copiar">&#128203;</button>
+            </div>
             <table class="connection-table">
                 <thead>
                     <tr>
@@ -553,6 +679,12 @@
                     </tr>
                 </thead>
                 <tbody>
+                    <tr>
+                        <td>SSH</td>
+                        <td><code>localhost</code></td>
+                        <td><code>2222</code></td>
+                        <td><code>vagrant / vagrant</code></td>
+                    </tr>
                     <tr>
                         <td>PostgreSQL</td>
                         <td><code>localhost</code></td>
@@ -578,16 +710,10 @@
                         <td><code>admin / admin</code></td>
                     </tr>
                     <tr>
-                        <td>SSH</td>
+                        <td>Docker</td>
                         <td><code>localhost</code></td>
-                        <td><code>2222</code></td>
-                        <td>Key-based (vagrant)</td>
-                    </tr>
-                    <tr>
-                        <td>Node.js App</td>
-                        <td><code>localhost</code></td>
-                        <td><code>3001</code></td>
-                        <td>&mdash;</td>
+                        <td><code>--</code></td>
+                        <td><code>vagrant user (grupo docker)</code></td>
                     </tr>
                 </tbody>
             </table>
@@ -597,6 +723,7 @@
     <script>
         let eventSource = null;
         let provisioning = false;
+        const MAX_LOG_LINES = 5;
 
         const btnProvision = document.getElementById('btn-provision');
         const btnDestroy = document.getElementById('btn-destroy');
@@ -604,20 +731,25 @@
 
         // ── SSE Connection ──
         function connectSSE() {
-            if (eventSource) {
-                eventSource.close();
-            }
+            return new Promise((resolve) => {
+                if (eventSource) eventSource.close();
 
-            eventSource = new EventSource('/api/events');
+                eventSource = new EventSource('/api/events');
 
-            eventSource.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                handleAgentEvent(data);
-            };
+                eventSource.onopen = () => resolve();
 
-            eventSource.onerror = () => {
-                console.log('SSE: reconectando...');
-            };
+                eventSource.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    handleAgentEvent(data);
+                };
+
+                eventSource.onerror = () => {
+                    console.log('SSE: reconectando...');
+                };
+
+                // Fallback si onopen no dispara rapido
+                setTimeout(resolve, 500);
+            });
         }
 
         // ── Handle agent events ──
@@ -640,13 +772,18 @@
                 fill.style.width = `${progress}%`;
             }
 
-            // Append log
+            // Append log a la bitacora (max 5 lineas visibles)
             const logs = card.querySelector('.agent-logs');
             const line = document.createElement('div');
             line.className = 'log-line';
             const time = new Date(timestamp).toLocaleTimeString('es', { hour12: false });
             line.innerHTML = `<span class="log-time">${time}</span>${escapeHtml(message)}`;
             logs.appendChild(line);
+
+            // Mantener solo los ultimos 5 mensajes
+            while (logs.children.length > MAX_LOG_LINES) {
+                logs.removeChild(logs.firstChild);
+            }
             logs.scrollTop = logs.scrollHeight;
 
             // Check orchestrator completion
@@ -695,7 +832,9 @@
             btnDestroy.disabled = true;
 
             resetAllCards();
-            connectSSE();
+
+            // Conectar SSE PRIMERO, esperar a que este listo
+            await connectSSE();
 
             try {
                 const res = await fetch('/api/provision', { method: 'POST' });
@@ -731,12 +870,139 @@
             }
         }
 
+        // ── Copy SSH command ──
+        function copySSH() {
+            const cmd = document.getElementById('ssh-cmd').textContent;
+            navigator.clipboard.writeText(cmd).then(() => {
+                const btn = document.querySelector('.btn-copy');
+                btn.classList.add('copied');
+                btn.innerHTML = '&#10003;';
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = '&#128203;';
+                }, 2000);
+            });
+        }
+
         // ── Helpers ──
         function escapeHtml(str) {
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
         }
+
+        // ── Collapse/Expand logs ──
+        function initToggle() {
+            document.querySelectorAll('.agent-header').forEach(header => {
+                // Agregar icono de toggle
+                const toggle = document.createElement('span');
+                toggle.className = 'agent-toggle';
+                toggle.textContent = '\u25BC';
+                header.appendChild(toggle);
+
+                header.addEventListener('click', () => {
+                    const card = header.closest('.agent-card');
+                    card.classList.toggle('collapsed');
+                });
+            });
+        }
+
+        // ── Retry a single agent ──
+        async function retryAgent(event, agentId) {
+            event.stopPropagation(); // No disparar toggle de collapse
+
+            const card = document.querySelector(`[data-agent="${agentId}"]`);
+            if (!card) return;
+
+            // Reset card a running
+            card.dataset.status = 'running';
+            const badge = card.querySelector('.agent-badge');
+            badge.dataset.status = 'running';
+            badge.textContent = 'RUNNING';
+            card.querySelector('.agent-progress-fill').style.width = '0%';
+            card.querySelector('.agent-logs').innerHTML = '';
+
+            // Asegurar SSE conectado
+            if (!eventSource || eventSource.readyState === EventSource.CLOSED) {
+                await connectSSE();
+            }
+
+            try {
+                const res = await fetch(`/api/retry/${agentId}`, { method: 'POST' });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    card.dataset.status = 'error';
+                    badge.dataset.status = 'error';
+                    badge.textContent = 'ERROR';
+
+                    const logs = card.querySelector('.agent-logs');
+                    const line = document.createElement('div');
+                    line.className = 'log-line';
+                    const time = new Date().toLocaleTimeString('es', { hour12: false });
+                    line.innerHTML = `<span class="log-time">${time}</span>${escapeHtml(data.error || 'Error al reintentar')}`;
+                    logs.appendChild(line);
+                }
+            } catch (err) {
+                card.dataset.status = 'error';
+                badge.dataset.status = 'error';
+                badge.textContent = 'ERROR';
+            }
+        }
+
+        // ── Check VM status on page load ──
+        async function checkVMStatus() {
+            try {
+                const res = await fetch('/api/vm-status');
+                const data = await res.json();
+
+                if (data.vm === 'running' && data.agentStates) {
+                    const vmName = data.name || 'unknown';
+                    let hasAnySuccess = false;
+
+                    // Restaurar estado real de cada agente
+                    for (const [agentId, agentState] of Object.entries(data.agentStates)) {
+                        const card = document.querySelector(`[data-agent="${agentId}"]`);
+                        if (!card) continue;
+
+                        const st = agentState.status;
+                        // Si estaba running al cerrar, tratar como error (no completo)
+                        const finalStatus = st === 'running' ? 'error' : st;
+
+                        card.dataset.status = finalStatus;
+                        const badge = card.querySelector('.agent-badge');
+                        badge.dataset.status = finalStatus;
+                        badge.textContent = statusLabel(finalStatus);
+
+                        const fill = card.querySelector('.agent-progress-fill');
+                        fill.style.width = `${agentState.progress || 0}%`;
+
+                        const logs = card.querySelector('.agent-logs');
+                        const line = document.createElement('div');
+                        line.className = 'log-line';
+                        const time = new Date().toLocaleTimeString('es', { hour12: false });
+                        line.innerHTML = `<span class="log-time">${time}</span>${escapeHtml(agentState.lastMessage || 'Estado restaurado')}`;
+                        logs.appendChild(line);
+
+                        if (finalStatus === 'success') hasAnySuccess = true;
+                    }
+
+                    // Mostrar tabla de conexion si al menos un agente tuvo exito
+                    if (hasAnySuccess) {
+                        connectionInfo.classList.add('visible');
+                    }
+                    btnDestroy.disabled = false;
+
+                    // Conectar SSE para recibir eventos de posibles retries
+                    connectSSE();
+                }
+            } catch (err) {
+                console.log('No se pudo verificar estado de VM:', err);
+            }
+        }
+
+        initToggle();
+        checkVMStatus();
     </script>
 </body>
 

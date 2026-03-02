@@ -1,0 +1,4 @@
+ignoredBuiltDependencies:
+  - cpu-features
+  - esbuild
+  - ssh2

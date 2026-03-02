@@ -1,64 +1,20 @@
-import { eventBus } from '../lib/event-bus.js';
-import { createSSHConnection, runSSH } from '../lib/ssh-client.js';
-import type { AgentId, AgentStatus } from '../lib/types.js';
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+import { runAIAgent } from '../lib/ai-agent.js';
+import type { AgentId } from '../lib/types.js';
 
 export class PnpmAgent {
     readonly id: AgentId = 'pnpm';
 
-    private emit(message: string, status?: AgentStatus, progress?: number) {
-        eventBus.emitEvent({
+    async run(): Promise<boolean> {
+        return runAIAgent({
             agentId: this.id,
-            type: status ? 'status' : 'log',
-            status,
-            message,
-            progress,
-            timestamp: Date.now(),
+            name: 'pnpm',
+            systemPrompt: `Eres un agente de infraestructura. Instala pnpm en una VM Ubuntu 24.04.
+Node.js ya esta instalado en la VM.
+
+Ejecuta estos pasos EN ORDEN. No te saltes ninguno:
+1. run_command → sudo corepack enable
+2. run_command → sudo corepack prepare pnpm@latest-10 --activate
+3. verify_installation → pnpm --version`,
         });
-    }
-
-    async run(): Promise<void> {
-        this.emit('Esperando a que Node.js este disponible...', 'running', 0);
-        const ssh = await createSSHConnection();
-
-        try {
-            // Polling: esperar a que Node.js esté instalado (max 120s)
-            const deadline = Date.now() + 120_000;
-            let nodeReady = false;
-            while (Date.now() < deadline) {
-                const { code } = await runSSH(ssh, 'which node');
-                if (code === 0) {
-                    nodeReady = true;
-                    break;
-                }
-                this.emit('Node.js aun no disponible, esperando 5s...');
-                await sleep(5000);
-            }
-
-            if (!nodeReady) {
-                throw new Error('Timeout: Node.js no se instalo en 120 segundos');
-            }
-
-            this.emit('Node.js detectado. Habilitando corepack...', undefined, 30);
-            await runSSH(ssh, 'sudo corepack enable', (line) => {
-                if (line) this.emit(line);
-            });
-
-            this.emit('Instalando pnpm via corepack...', undefined, 60);
-            await runSSH(ssh, 'sudo corepack prepare pnpm@latest --activate', (line) => {
-                if (line) this.emit(line);
-            });
-
-            this.emit('Verificando instalacion...', undefined, 85);
-            const { stdout } = await runSSH(ssh, 'pnpm --version');
-
-            this.emit(`pnpm listo: v${stdout.trim()}`, 'success', 100);
-        } catch (err: any) {
-            this.emit(`Error: ${err.message}`, 'error');
-            throw err;
-        } finally {
-            ssh.dispose();
-        }
     }
 }

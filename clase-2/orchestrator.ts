@@ -6,7 +6,17 @@ import { RabbitMQAgent } from './agents/rabbitmq-agent.js';
 import { NodeJSAgent } from './agents/nodejs-agent.js';
 import { PnpmAgent } from './agents/pnpm-agent.js';
 import { SSHConfigAgent } from './agents/ssh-agent.js';
-import type { AgentStatus } from './lib/types.js';
+import { DockerAgent } from './agents/docker-agent.js';
+import type { AgentId, AgentStatus } from './lib/types.js';
+
+const MAX_ROUNDS = 3;
+
+interface ManagedAgent {
+    id: AgentId;
+    name: string;
+    factory: () => { id: AgentId; run(): Promise<boolean> };
+    dependsOn?: AgentId;
+}
 
 export class Orchestrator {
     private running = false;
@@ -26,6 +36,17 @@ export class Orchestrator {
         });
     }
 
+    private emitAgent(agentId: AgentId, message: string, status?: AgentStatus, progress?: number) {
+        eventBus.emitEvent({
+            agentId,
+            type: status ? 'status' : 'log',
+            status,
+            message,
+            progress,
+            timestamp: Date.now(),
+        });
+    }
+
     async run(): Promise<void> {
         this.running = true;
 
@@ -33,7 +54,7 @@ export class Orchestrator {
             this.emit('Iniciando provisioning de infraestructura...', 'running', 0);
 
             // ═══════════════════════════════════════════════════
-            // FASE 1: VM Agent (BLOQUEANTE — debe completar antes de continuar)
+            // FASE 1: VM Agent (BLOQUEANTE)
             // ═══════════════════════════════════════════════════
             this.emit('Fase 1: Creando maquina virtual...', undefined, 5);
             const vmAgent = new VMAgent();
@@ -46,33 +67,73 @@ export class Orchestrator {
             }
 
             // ═══════════════════════════════════════════════════
-            // FASE 2: Resource Agents (TODOS EN PARALELO)
+            // FASE 2: Resource Agents con reintentos
             // ═══════════════════════════════════════════════════
-            this.emit('Fase 2: Lanzando 6 agentes de recursos en paralelo...', undefined, 40);
+            this.emit('Fase 2: Lanzando agentes de recursos...', undefined, 40);
 
-            const resourceAgents = [
-                new PostgreSQLAgent(),
-                new RedisAgent(),
-                new RabbitMQAgent(),
-                new NodeJSAgent(),
-                new PnpmAgent(),
-                new SSHConfigAgent(),
+            const agents: ManagedAgent[] = [
+                { id: 'postgresql', name: 'PostgreSQL', factory: () => new PostgreSQLAgent() },
+                { id: 'redis', name: 'Redis', factory: () => new RedisAgent() },
+                { id: 'rabbitmq', name: 'RabbitMQ', factory: () => new RabbitMQAgent() },
+                { id: 'nodejs', name: 'Node.js', factory: () => new NodeJSAgent() },
+                { id: 'ssh-config', name: 'SSH Config', factory: () => new SSHConfigAgent() },
+                { id: 'docker', name: 'Docker', factory: () => new DockerAgent() },
+                { id: 'pnpm', name: 'pnpm', factory: () => new PnpmAgent(), dependsOn: 'nodejs' },
             ];
 
-            const results = await Promise.allSettled(
-                resourceAgents.map(agent => agent.run())
-            );
+            const verified = new Set<AgentId>();
+
+            for (let round = 1; round <= MAX_ROUNDS; round++) {
+                // Select agents to run this round
+                const toRun = agents.filter(({ id, dependsOn }) => {
+                    if (verified.has(id)) return false; // already verified
+                    if (dependsOn && !verified.has(dependsOn)) return false; // dependency not met
+                    return true;
+                });
+
+                if (toRun.length === 0) break;
+
+                if (round > 1) {
+                    const names = toRun.map(a => a.name).join(', ');
+                    this.emit(`Ronda ${round}/${MAX_ROUNDS}: reintentando ${names}...`, undefined, 40 + round * 15);
+                }
+
+                await Promise.allSettled(
+                    toRun.map(async ({ id, name, factory }) => {
+                        try {
+                            const agent = factory();
+                            const ok = await agent.run();
+                            if (ok) {
+                                verified.add(id);
+                                this.emitAgent(id, `${name} completado`, 'success', 100);
+                            } else {
+                                this.emitAgent(id, `${name}: verificacion no exitosa (ronda ${round})`, round < MAX_ROUNDS ? undefined : 'error');
+                            }
+                        } catch (err: any) {
+                            this.emitAgent(id, `${name}: error - ${err.message}`, round < MAX_ROUNDS ? undefined : 'error');
+                        }
+                    })
+                );
+            }
+
+            // ═══════════════════════════════════════════════════
+            // Mark agents that never ran (dependency failed)
+            // ═══════════════════════════════════════════════════
+            for (const { id, name, dependsOn } of agents) {
+                if (!verified.has(id) && dependsOn && !verified.has(dependsOn)) {
+                    this.emitAgent(id, `${name}: no se ejecuto (${dependsOn} no esta disponible)`, 'error');
+                }
+            }
 
             // ═══════════════════════════════════════════════════
             // RESUMEN FINAL
             // ═══════════════════════════════════════════════════
-            const succeeded = results.filter(r => r.status === 'fulfilled').length;
-            const failed = results.filter(r => r.status === 'rejected');
+            const failedAgents = agents.filter(a => !verified.has(a.id));
 
-            if (failed.length > 0) {
-                const failedNames = failed.map((r, i) => resourceAgents[i]?.id).join(', ');
+            if (failedAgents.length > 0) {
+                const failedNames = failedAgents.map(a => a.name).join(', ');
                 this.emit(
-                    `Provisioning completado con ${failed.length} error(es): ${failedNames}. ${succeeded}/6 exitosos.`,
+                    `Provisioning completado con ${failedAgents.length} error(es): ${failedNames}. ${verified.size}/${agents.length} exitosos.`,
                     'error',
                     100,
                 );

@@ -60,6 +60,8 @@ export class VMAgent {
 
     private vagrantCommand(args: string[]): Promise<void> {
         return new Promise((resolve, reject) => {
+            const stderrLines: string[] = [];
+
             const proc = spawn('vagrant', args, {
                 cwd: process.cwd(),
                 shell: true,
@@ -70,7 +72,6 @@ export class VMAgent {
                 for (const line of lines) {
                     const trimmed = line.trim();
                     if (!trimmed) continue;
-                    this.emit(trimmed);
 
                     // Estimar progreso basado en output de Vagrant
                     if (trimmed.includes('Importing')) this.emit(trimmed, undefined, 20);
@@ -80,20 +81,35 @@ export class VMAgent {
                     else if (trimmed.includes('Machine booted')) this.emit(trimmed, undefined, 60);
                     else if (trimmed.includes('Mounting shared')) this.emit(trimmed, undefined, 65);
                     else if (trimmed.includes('Running provisioner')) this.emit(trimmed, undefined, 70);
+                    else this.emit(trimmed);
                 }
             });
 
             proc.stderr.on('data', (data: Buffer) => {
-                const line = data.toString().trim();
-                if (line) this.emit(`[stderr] ${line}`);
+                const lines = data.toString().split('\n').filter(Boolean);
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed) continue;
+                    stderrLines.push(trimmed);
+                    this.emit(`[stderr] ${trimmed}`);
+                }
             });
 
             proc.on('close', (code) => {
-                if (code === 0) resolve();
-                else reject(new Error(`vagrant ${args.join(' ')} exit code ${code}`));
+                if (code === 0) {
+                    resolve();
+                } else {
+                    const detail = stderrLines.length > 0
+                        ? stderrLines.slice(-5).join(' | ')
+                        : 'Sin detalles de error';
+                    reject(new Error(`vagrant ${args.join(' ')} exit code ${code}: ${detail}`));
+                }
             });
 
-            proc.on('error', (err) => reject(err));
+            proc.on('error', (err) => {
+                this.emit(`[error] No se pudo ejecutar vagrant: ${err.message}`);
+                reject(err);
+            });
         });
     }
 }

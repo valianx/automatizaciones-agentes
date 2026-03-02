@@ -1,46 +1,20 @@
-import { eventBus } from '../lib/event-bus.js';
-import { createSSHConnection, runSSH } from '../lib/ssh-client.js';
-import type { AgentId, AgentStatus } from '../lib/types.js';
+import { runAIAgent } from '../lib/ai-agent.js';
+import type { AgentId } from '../lib/types.js';
 
 export class NodeJSAgent {
     readonly id: AgentId = 'nodejs';
 
-    private emit(message: string, status?: AgentStatus, progress?: number) {
-        eventBus.emitEvent({
+    async run(): Promise<boolean> {
+        return runAIAgent({
             agentId: this.id,
-            type: status ? 'status' : 'log',
-            status,
-            message,
-            progress,
-            timestamp: Date.now(),
+            name: 'Node.js',
+            systemPrompt: `Eres un agente de infraestructura. Instala Node.js LTS en una VM Ubuntu 24.04.
+
+Ejecuta estos pasos EN ORDEN. No te saltes ninguno:
+1. run_command → curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -  (esto SOLO agrega el repo, NO instala node)
+2. install_package → nodejs  (esto SI instala node)
+3. verify_installation → node --version (debe mostrar v22.x o v24.x)
+4. verify_installation → npm --version`,
         });
-    }
-
-    async run(): Promise<void> {
-        this.emit('Iniciando instalacion de Node.js...', 'running', 0);
-        const ssh = await createSSHConnection();
-
-        try {
-            this.emit('Descargando setup de NodeSource (v22 LTS)...', undefined, 15);
-            await runSSH(ssh, 'curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -', (line) => {
-                if (line) this.emit(line);
-            });
-
-            this.emit('Instalando Node.js...', undefined, 50);
-            await runSSH(ssh, 'sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs', (line) => {
-                if (line) this.emit(line);
-            });
-
-            this.emit('Verificando instalacion...', undefined, 85);
-            const { stdout: nodeV } = await runSSH(ssh, 'node --version');
-            const { stdout: npmV } = await runSSH(ssh, 'npm --version');
-
-            this.emit(`Node.js listo: ${nodeV.trim()} / npm ${npmV.trim()}`, 'success', 100);
-        } catch (err: any) {
-            this.emit(`Error: ${err.message}`, 'error');
-            throw err;
-        } finally {
-            ssh.dispose();
-        }
     }
 }
