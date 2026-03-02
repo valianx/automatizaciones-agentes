@@ -58,11 +58,16 @@ eventBus.on('agent-event', (event: AgentEvent) => {
 });
 
 let orchestrator: Orchestrator | null = null;
+let destroying = false;
 
 // POST /api/provision — arranca el provisioning completo
 app.post('/api/provision', (_req, res) => {
     if (orchestrator?.isRunning()) {
-        res.status(409).json({ error: 'Provisioning already in progress' });
+        res.status(409).json({ error: 'Provisioning en progreso' });
+        return;
+    }
+    if (destroying) {
+        res.status(409).json({ error: 'Destroy en progreso, espera a que termine' });
         return;
     }
 
@@ -70,7 +75,6 @@ app.post('/api/provision', (_req, res) => {
     orchestrator = new Orchestrator();
     res.json({ status: 'started', message: 'Provisioning iniciado' });
 
-    // Ejecutar en background (no bloqueamos la respuesta HTTP)
     orchestrator.run().catch((err: Error) => {
         console.error('Orchestrator error:', err.message);
     });
@@ -126,6 +130,11 @@ app.post('/api/retry/:agentId', (req, res) => {
         return;
     }
 
+    if (destroying) {
+        res.status(409).json({ error: 'Destroy en progreso' });
+        return;
+    }
+
     if (retryingAgents.has(agentId)) {
         res.status(409).json({ error: `Agent ${agentId} is already retrying` });
         return;
@@ -155,17 +164,26 @@ app.post('/api/retry/:agentId', (req, res) => {
 // POST /api/destroy — destruye la VM
 app.post('/api/destroy', (_req, res) => {
     if (orchestrator?.isRunning()) {
-        res.status(409).json({ error: 'Cannot destroy while provisioning is running' });
+        res.status(409).json({ error: 'No se puede destruir mientras el provisioning esta en progreso' });
+        return;
+    }
+    if (destroying) {
+        res.status(409).json({ error: 'Destroy ya en progreso' });
         return;
     }
 
+    destroying = true;
     clearAgentStates();
     res.json({ status: 'started', message: 'Destroying VM...' });
 
     const destroyOrch = new Orchestrator();
-    destroyOrch.destroy().catch((err: Error) => {
-        console.error('Destroy error:', err.message);
-    });
+    destroyOrch.destroy()
+        .catch((err: Error) => {
+            console.error('Destroy error:', err.message);
+        })
+        .finally(() => {
+            destroying = false;
+        });
 });
 
 const server = app.listen(PORT, () => {

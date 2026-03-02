@@ -1,0 +1,485 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "id": "frame-server",
+      "type": "rectangle",
+      "x": 340,
+      "y": 70,
+      "width": 440,
+      "height": 380,
+      "strokeColor": "#cc0000",
+      "backgroundColor": "#fdf2f2",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "dashed",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      }
+    },
+    {
+      "id": "text-server-title",
+      "type": "text",
+      "x": 360,
+      "y": 80,
+      "width": 220,
+      "height": 20,
+      "strokeColor": "#cc0000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "text": "⚡ Poké-Express Server",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "left",
+      "verticalAlign": "top",
+      "baseline": 15
+    },
+    {
+      "id": "rect-ui",
+      "type": "rectangle",
+      "x": 50,
+      "y": 200,
+      "width": 240,
+      "height": 90,
+      "strokeColor": "#880000",
+      "backgroundColor": "#cc0000",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [
+        "group-ui"
+      ],
+      "roundness": {
+        "type": 3
+      }
+    },
+    {
+      "id": "text-ui",
+      "type": "text",
+      "x": 60,
+      "y": 220,
+      "width": 220,
+      "height": 50,
+      "strokeColor": "#ffffff",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [
+        "group-ui"
+      ],
+      "text": "📱 Pokedex UI\n(Browser)",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "baseline": 15,
+      "lineHeight": 1.25
+    },
+    {
+      "id": "rect-agent",
+      "type": "rectangle",
+      "x": 420,
+      "y": 140,
+      "width": 280,
+      "height": 80,
+      "strokeColor": "#b38f00",
+      "backgroundColor": "#ffcc00",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [
+        "group-agent"
+      ],
+      "roundness": {
+        "type": 3
+      }
+    },
+    {
+      "id": "text-agent",
+      "type": "text",
+      "x": 430,
+      "y": 155,
+      "width": 260,
+      "height": 50,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [
+        "group-agent"
+      ],
+      "text": "🧑‍🔬 Pokémon Agent\n(ToolLoopAgent)",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "baseline": 15,
+      "lineHeight": 1.25
+    },
+    {
+      "id": "rect-tool",
+      "type": "rectangle",
+      "x": 420,
+      "y": 310,
+      "width": 280,
+      "height": 80,
+      "strokeColor": "#2a378e",
+      "backgroundColor": "#3b4cca",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [
+        "group-tool"
+      ],
+      "roundness": {
+        "type": 3
+      }
+    },
+    {
+      "id": "text-tool",
+      "type": "text",
+      "x": 430,
+      "y": 327.5,
+      "width": 260,
+      "height": 45,
+      "strokeColor": "#ffffff",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [
+        "group-tool"
+      ],
+      "text": "🛠️ Tool:\nobtener_datos_pokemon",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "baseline": 15,
+      "lineHeight": 1.25
+    },
+    {
+      "id": "rect-valkey",
+      "type": "rectangle",
+      "x": 850,
+      "y": 180,
+      "width": 260,
+      "height": 90,
+      "strokeColor": "#cc0000",
+      "backgroundColor": "#ffffff",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [
+        "group-valkey"
+      ],
+      "roundness": {
+        "type": 3
+      }
+    },
+    {
+      "id": "text-valkey",
+      "type": "text",
+      "x": 860,
+      "y": 200,
+      "width": 240,
+      "height": 50,
+      "strokeColor": "#cc0000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [
+        "group-valkey"
+      ],
+      "text": "🗄️ Valkey (Redis)\n(Caché / Histórico)",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "baseline": 15,
+      "lineHeight": 1.25
+    },
+    {
+      "id": "rect-pokeapi",
+      "type": "rectangle",
+      "x": 850,
+      "y": 340,
+      "width": 260,
+      "height": 90,
+      "strokeColor": "#3b4cca",
+      "backgroundColor": "#e6f0ff",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [
+        "group-pokeapi"
+      ],
+      "roundness": {
+        "type": 3
+      }
+    },
+    {
+      "id": "text-pokeapi",
+      "type": "text",
+      "x": 860,
+      "y": 360,
+      "width": 240,
+      "height": 50,
+      "strokeColor": "#3b4cca",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [
+        "group-pokeapi"
+      ],
+      "text": "🌐 PokeAPI\n(Datos Oficiales)",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "baseline": 15,
+      "lineHeight": 1.25
+    },
+    {
+      "id": "arrow-ui-server",
+      "type": "arrow",
+      "x": 290,
+      "y": 245,
+      "width": 50,
+      "height": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1.5,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "endArrowhead": "arrow",
+      "startArrowhead": null,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          50,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "text-arrow-ui-server",
+      "type": "text",
+      "x": 275,
+      "y": 215,
+      "width": 80,
+      "height": 20,
+      "strokeColor": "#555",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "text": "POST /api/chat",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "baseline": 15,
+      "lineHeight": 1.25
+    },
+    {
+      "id": "arrow-agent-tool",
+      "type": "arrow",
+      "x": 560,
+      "y": 220,
+      "width": 0,
+      "height": 90,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1.5,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "endArrowhead": "arrow",
+      "startArrowhead": null,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          90
+        ]
+      ]
+    },
+    {
+      "id": "text-arrow-agent-tool",
+      "type": "text",
+      "x": 545,
+      "y": 255,
+      "width": 80,
+      "height": 20,
+      "strokeColor": "#555",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "text": "usa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "baseline": 15,
+      "lineHeight": 1.25
+    },
+    {
+      "id": "arrow-tool-valkey",
+      "type": "arrow",
+      "x": 700,
+      "y": 330,
+      "width": 150,
+      "height": 100,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1.5,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "endArrowhead": "arrow",
+      "startArrowhead": null,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          150,
+          -100
+        ]
+      ]
+    },
+    {
+      "id": "text-arrow-tool-valkey",
+      "type": "text",
+      "x": 715,
+      "y": 245,
+      "width": 80,
+      "height": 20,
+      "strokeColor": "#cc0000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "text": "1. Cache lookup",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "baseline": 15,
+      "lineHeight": 1.25
+    },
+    {
+      "id": "arrow-tool-pokeapi",
+      "type": "arrow",
+      "x": 700,
+      "y": 360,
+      "width": 150,
+      "height": 25,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1.5,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "endArrowhead": "arrow",
+      "startArrowhead": null,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          150,
+          25
+        ]
+      ]
+    },
+    {
+      "id": "text-arrow-tool-pokeapi",
+      "type": "text",
+      "x": 715,
+      "y": 382.5,
+      "width": 80,
+      "height": 20,
+      "strokeColor": "#3b4cca",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "text": "2. Si hay miss",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "baseline": 15,
+      "lineHeight": 1.25
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#f6f8fa"
+  }
+}

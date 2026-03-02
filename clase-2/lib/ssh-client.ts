@@ -32,8 +32,10 @@ export async function runSSH(
     onOutput?: (line: string) => void,
 ): Promise<{ stdout: string; stderr: string; code: number }> {
     const result = await ssh.execCommand(command, {
-        onStdout: onOutput ? (chunk) => onOutput(chunk.toString().trim()) : undefined,
-        onStderr: onOutput ? (chunk) => onOutput(`[stderr] ${chunk.toString().trim()}`) : undefined,
+        ...(onOutput ? {
+            onStdout: (chunk: Buffer) => onOutput(chunk.toString().trim()),
+            onStderr: (chunk: Buffer) => onOutput(`[stderr] ${chunk.toString().trim()}`),
+        } : {}),
     });
 
     return {

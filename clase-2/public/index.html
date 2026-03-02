@@ -786,15 +786,21 @@
             }
             logs.scrollTop = logs.scrollHeight;
 
-            // Check orchestrator completion
+            // Check orchestrator completion (provisioning or destroy)
             if (agentId === 'orchestrator' && (status === 'success' || status === 'error')) {
                 provisioning = false;
                 btnProvision.disabled = false;
                 btnProvision.innerHTML = '&#9654; Provisionar';
                 btnDestroy.disabled = false;
+                btnDestroy.innerHTML = '&#10005; Destruir VM';
 
-                if (status === 'success') {
+                if (status === 'success' && !message.includes('destruida')) {
                     connectionInfo.classList.add('visible');
+                    btnDestroy.disabled = false;
+                }
+                if (message.includes('destruida')) {
+                    connectionInfo.classList.remove('visible');
+                    btnDestroy.disabled = true;
                 }
             }
         }
@@ -859,14 +865,26 @@
             if (provisioning) return;
             if (!confirm('Esto destruira la VM y todos los recursos. Continuar?')) return;
 
+            btnProvision.disabled = true;
+            btnDestroy.disabled = true;
+            btnDestroy.innerHTML = '&#9203; Destruyendo...';
             resetAllCards();
-            connectSSE();
+            await connectSSE();
 
             try {
-                await fetch('/api/destroy', { method: 'POST' });
-                btnDestroy.disabled = true;
+                const res = await fetch('/api/destroy', { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok) {
+                    alert(data.error || 'Error al destruir');
+                    btnProvision.disabled = false;
+                    btnDestroy.disabled = false;
+                    btnDestroy.innerHTML = '&#10005; Destruir VM';
+                }
             } catch (err) {
                 alert('Error de conexion con el servidor');
+                btnProvision.disabled = false;
+                btnDestroy.disabled = false;
+                btnDestroy.innerHTML = '&#10005; Destruir VM';
             }
         }
 

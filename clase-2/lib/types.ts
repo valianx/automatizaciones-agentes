@@ -15,8 +15,8 @@ export function isResourceAgentId(id: string): id is ResourceAgentId {
 export interface AgentEvent {
     agentId: AgentId;
     type: 'status' | 'log';
-    status?: AgentStatus;
+    status?: AgentStatus | undefined;
     message: string;
     timestamp: number;
-    progress?: number; // 0-100
+    progress?: number | undefined; // 0-100
 }
