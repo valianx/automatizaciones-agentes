@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infrastructure Orchestrator — Clase 2</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🖥️</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0f0d;
+            --bg-card: #111a16;
+            --bg-card-header: #162420;
+            --bg-input: #0e1512;
+            --border: #1e3a2f;
+            --border-active: #00ff88;
+            --green-primary: #00ff88;
+            --green-dim: #00cc6a;
+            --green-glow: rgba(0, 255, 136, 0.15);
+            --red-error: #ff4457;
+            --yellow-warning: #ffbb33;
+            --blue-info: #33bbff;
+            --text-primary: #d0e8dc;
+            --text-secondary: #7a9a8c;
+            --text-muted: #4a6a5c;
+            --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            --font-sans: 'Inter', system-ui, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-dark);
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0, 200, 255, 0.02) 0%, transparent 40%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Header ── */
+        .app-header {
+            padding: 24px 40px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(10, 15, 13, 0.9);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #0a2a1a, #1a4a2a);
+            border: 1px solid var(--green-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 0 20px var(--green-glow);
+        }
+
+        .header-title {
+            font-family: var(--font-mono);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--green-primary);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .header-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            margin-top: 2px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: 1px solid;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-provision {
+            background: var(--green-primary);
+            border-color: var(--green-dim);
+            color: #000;
+            box-shadow: 0 3px 0 #009955;
+        }
+
+        .btn-provision:hover:not(:disabled) {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #009955;
+        }
+
+        .btn-provision:disabled {
+            background: var(--text-muted);
+            border-color: var(--border);
+            color: var(--bg-dark);
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .btn-destroy {
+            background: transparent;
+            border-color: var(--red-error);
+            color: var(--red-error);
+        }
+
+        .btn-destroy:hover:not(:disabled) {
+            background: var(--red-error);
+            color: #000;
+        }
+
+        .btn-destroy:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* ── Main Content ── */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* ── Agent Card ── */
+        .agent-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .agent-card[data-status="running"] {
+            border-color: var(--green-primary);
+            box-shadow: 0 0 20px var(--green-glow);
+        }
+
+        .agent-card[data-status="success"] {
+            border-color: var(--green-dim);
+        }
+
+        .agent-card[data-status="error"] {
+            border-color: var(--red-error);
+            box-shadow: 0 0 20px rgba(255, 68, 87, 0.1);
+        }
+
+        .agent-header {
+            padding: 14px 20px;
+            background: var(--bg-card-header);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .agent-icon {
+            font-size: 20px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid var(--border);
+        }
+
+        .agent-name {
+            font-family: var(--font-mono);
+            font-weight: 600;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            flex: 1;
+        }
+
+        .agent-badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .agent-badge[data-status="idle"] {
+            background: rgba(74, 106, 92, 0.2);
+            color: var(--text-muted);
+            border: 1px solid var(--text-muted);
+        }
+
+        .agent-badge[data-status="running"] {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--green-primary);
+            border: 1px solid var(--green-primary);
+            animation: pulse-badge 1.5s ease-in-out infinite;
+        }
+
+        .agent-badge[data-status="success"] {
+            background: rgba(0, 204, 106, 0.15);
+            color: var(--green-dim);
+            border: 1px solid var(--green-dim);
+        }
+
+        .agent-badge[data-status="error"] {
+            background: rgba(255, 68, 87, 0.1);
+            color: var(--red-error);
+            border: 1px solid var(--red-error);
+        }
+
+        @keyframes pulse-badge {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Progress bar */
+        .agent-progress {
+            height: 3px;
+            background: rgba(0, 255, 136, 0.08);
+        }
+
+        .agent-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--green-primary);
+            transition: width 0.5s ease;
+            box-shadow: 0 0 8px var(--green-glow);
+        }
+
+        .agent-card[data-status="error"] .agent-progress-fill {
+            background: var(--red-error);
+            box-shadow: 0 0 8px rgba(255, 68, 87, 0.3);
+        }
+
+        /* Logs */
+        .agent-logs {
+            max-height: 0;
+            overflow-y: auto;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            background: var(--bg-input);
+            transition: max-height 0.3s ease;
+        }
+
+        .agent-card[data-status="running"] .agent-logs,
+        .agent-card[data-status="success"] .agent-logs,
+        .agent-card[data-status="error"] .agent-logs {
+            max-height: 180px;
+            padding: 12px 16px;
+        }
+
+        .agent-logs::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .agent-logs::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 2px;
+        }
+
+        .log-line {
+            padding: 1px 0;
+            word-break: break-all;
+        }
+
+        .log-line .log-time {
+            color: var(--text-muted);
+            margin-right: 8px;
+        }
+
+        /* ── Section Headers ── */
+        .section-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* ── Resource Agents Grid ── */
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        /* ── Connection Info ── */
+        .connection-info {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            display: none;
+        }
+
+        .connection-info.visible {
+            display: block;
+        }
+
+        .connection-info h3 {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--green-primary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .connection-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+        }
+
+        .connection-table th {
+            text-align: left;
+            padding: 8px 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .connection-table td {
+            padding: 8px 12px;
+            color: var(--text-primary);
+            border-bottom: 1px solid rgba(30, 58, 47, 0.3);
+        }
+
+        .connection-table code {
+            background: rgba(0, 255, 136, 0.08);
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: var(--green-primary);
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 1000px) {
+            .agents-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .app-header {
+                padding: 16px 20px;
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .agents-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ── Animations ── */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .agent-card {
+            animation: fadeIn 0.4s ease;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <div class="header-icon">&#9881;</div>
+            <div>
+                <div class="header-title">Infrastructure Orchestrator</div>
+                <div class="header-subtitle">Vagrant + VirtualBox &middot; Ubuntu 24.04 LTS</div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-provision" id="btn-provision" onclick="startProvision()">
+                &#9654; Provisionar
+            </button>
+            <button class="btn btn-destroy" id="btn-destroy" onclick="destroyVM()" disabled>
+                &#10005; Destruir VM
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Orchestrator -->
+        <div class="section-label">Orquestador</div>
+        <div class="agent-card" data-agent="orchestrator" data-status="idle">
+            <div class="agent-header">
+                <div class="agent-icon">&#127891;</div>
+                <span class="agent-name">Orchestrator</span>
+                <span class="agent-badge" data-status="idle">IDLE</span>
+            </div>
+            <div class="agent-progress"><div class="agent-progress-fill"></div></div>
+            <div class="agent-logs"></div>
+        </div>
+
+        <!-- VM Agent -->
+        <div class="section-label">Fase 1 &mdash; Maquina Virtual (bloqueante)</div>
+        <div class="agent-card" data-agent="vm" data-status="idle">
+            <div class="agent-header">
+                <div class="agent-icon">&#128187;</div>
+                <span class="agent-name">VM Agent</span>
+                <span class="agent-badge" data-status="idle">IDLE</span>
+            </div>
+            <div class="agent-progress"><div class="agent-progress-fill"></div></div>
+            <div class="agent-logs"></div>
+        </div>
+
+        <!-- Resource Agents -->
+        <div class="section-label">Fase 2 &mdash; Recursos (paralelo)</div>
+        <div class="agents-grid">
+            <div class="agent-card" data-agent="postgresql" data-status="idle">
+                <div class="agent-header">
+                    <div class="agent-icon">&#128024;</div>
+                    <span class="agent-name">PostgreSQL</span>
+                    <span class="agent-badge" data-status="idle">IDLE</span>
+                </div>
+                <div class="agent-progress"><div class="agent-progress-fill"></div></div>
+                <div class="agent-logs"></div>
+            </div>
+
+            <div class="agent-card" data-agent="redis" data-status="idle">
+                <div class="agent-header">
+                    <div class="agent-icon">&#9889;</div>
+                    <span class="agent-name">Redis</span>
+                    <span class="agent-badge" data-status="idle">IDLE</span>
+                </div>
+                <div class="agent-progress"><div class="agent-progress-fill"></div></div>
+                <div class="agent-logs"></div>
+            </div>
+
+            <div class="agent-card" data-agent="rabbitmq" data-status="idle">
+                <div class="agent-header">
+                    <div class="agent-icon">&#128048;</div>
+                    <span class="agent-name">RabbitMQ</span>
+                    <span class="agent-badge" data-status="idle">IDLE</span>
+                </div>
+                <div class="agent-progress"><div class="agent-progress-fill"></div></div>
+                <div class="agent-logs"></div>
+            </div>
+
+            <div class="agent-card" data-agent="nodejs" data-status="idle">
+                <div class="agent-header">
+                    <div class="agent-icon">&#9881;</div>
+                    <span class="agent-name">Node.js</span>
+                    <span class="agent-badge" data-status="idle">IDLE</span>
+                </div>
+                <div class="agent-progress"><div class="agent-progress-fill"></div></div>
+                <div class="agent-logs"></div>
+            </div>
+
+            <div class="agent-card" data-agent="pnpm" data-status="idle">
+                <div class="agent-header">
+                    <div class="agent-icon">&#128230;</div>
+                    <span class="agent-name">pnpm</span>
+                    <span class="agent-badge" data-status="idle">IDLE</span>
+                </div>
+                <div class="agent-progress"><div class="agent-progress-fill"></div></div>
+                <div class="agent-logs"></div>
+            </div>
+
+            <div class="agent-card" data-agent="ssh-config" data-status="idle">
+                <div class="agent-header">
+                    <div class="agent-icon">&#128272;</div>
+                    <span class="agent-name">SSH Config</span>
+                    <span class="agent-badge" data-status="idle">IDLE</span>
+                </div>
+                <div class="agent-progress"><div class="agent-progress-fill"></div></div>
+                <div class="agent-logs"></div>
+            </div>
+        </div>
+
+        <!-- Connection Info (visible after success) -->
+        <div class="connection-info" id="connection-info">
+            <h3>&#128279; Datos de conexion</h3>
+            <table class="connection-table">
+                <thead>
+                    <tr>
+                        <th>Servicio</th>
+                        <th>Host</th>
+                        <th>Puerto</th>
+                        <th>Credenciales</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>PostgreSQL</td>
+                        <td><code>localhost</code></td>
+                        <td><code>5432</code></td>
+                        <td><code>postgres / postgres</code></td>
+                    </tr>
+                    <tr>
+                        <td>Redis</td>
+                        <td><code>localhost</code></td>
+                        <td><code>6379</code></td>
+                        <td>Sin auth</td>
+                    </tr>
+                    <tr>
+                        <td>RabbitMQ</td>
+                        <td><code>localhost</code></td>
+                        <td><code>5672</code></td>
+                        <td><code>admin / admin</code></td>
+                    </tr>
+                    <tr>
+                        <td>RabbitMQ UI</td>
+                        <td><code>localhost</code></td>
+                        <td><code>15672</code></td>
+                        <td><code>admin / admin</code></td>
+                    </tr>
+                    <tr>
+                        <td>SSH</td>
+                        <td><code>localhost</code></td>
+                        <td><code>2222</code></td>
+                        <td>Key-based (vagrant)</td>
+                    </tr>
+                    <tr>
+                        <td>Node.js App</td>
+                        <td><code>localhost</code></td>
+                        <td><code>3001</code></td>
+                        <td>&mdash;</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        let eventSource = null;
+        let provisioning = false;
+
+        const btnProvision = document.getElementById('btn-provision');
+        const btnDestroy = document.getElementById('btn-destroy');
+        const connectionInfo = document.getElementById('connection-info');
+
+        // ── SSE Connection ──
+        function connectSSE() {
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            eventSource = new EventSource('/api/events');
+
+            eventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleAgentEvent(data);
+            };
+
+            eventSource.onerror = () => {
+                console.log('SSE: reconectando...');
+            };
+        }
+
+        // ── Handle agent events ──
+        function handleAgentEvent(event) {
+            const { agentId, status, message, progress, timestamp } = event;
+            const card = document.querySelector(`[data-agent="${agentId}"]`);
+            if (!card) return;
+
+            // Update status
+            if (status) {
+                card.dataset.status = status;
+                const badge = card.querySelector('.agent-badge');
+                badge.dataset.status = status;
+                badge.textContent = statusLabel(status);
+            }
+
+            // Update progress
+            if (progress !== undefined) {
+                const fill = card.querySelector('.agent-progress-fill');
+                fill.style.width = `${progress}%`;
+            }
+
+            // Append log
+            const logs = card.querySelector('.agent-logs');
+            const line = document.createElement('div');
+            line.className = 'log-line';
+            const time = new Date(timestamp).toLocaleTimeString('es', { hour12: false });
+            line.innerHTML = `<span class="log-time">${time}</span>${escapeHtml(message)}`;
+            logs.appendChild(line);
+            logs.scrollTop = logs.scrollHeight;
+
+            // Check orchestrator completion
+            if (agentId === 'orchestrator' && (status === 'success' || status === 'error')) {
+                provisioning = false;
+                btnProvision.disabled = false;
+                btnProvision.innerHTML = '&#9654; Provisionar';
+                btnDestroy.disabled = false;
+
+                if (status === 'success') {
+                    connectionInfo.classList.add('visible');
+                }
+            }
+        }
+
+        function statusLabel(status) {
+            const labels = {
+                idle: 'IDLE',
+                running: 'RUNNING',
+                success: 'OK',
+                error: 'ERROR',
+            };
+            return labels[status] || status.toUpperCase();
+        }
+
+        // ── Reset all cards ──
+        function resetAllCards() {
+            document.querySelectorAll('.agent-card').forEach(card => {
+                card.dataset.status = 'idle';
+                const badge = card.querySelector('.agent-badge');
+                badge.dataset.status = 'idle';
+                badge.textContent = 'IDLE';
+                card.querySelector('.agent-progress-fill').style.width = '0%';
+                card.querySelector('.agent-logs').innerHTML = '';
+            });
+            connectionInfo.classList.remove('visible');
+        }
+
+        // ── Start provisioning ──
+        async function startProvision() {
+            if (provisioning) return;
+
+            provisioning = true;
+            btnProvision.disabled = true;
+            btnProvision.innerHTML = '&#9203; Provisionando...';
+            btnDestroy.disabled = true;
+
+            resetAllCards();
+            connectSSE();
+
+            try {
+                const res = await fetch('/api/provision', { method: 'POST' });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    alert(data.error || 'Error al iniciar provisioning');
+                    provisioning = false;
+                    btnProvision.disabled = false;
+                    btnProvision.innerHTML = '&#9654; Provisionar';
+                }
+            } catch (err) {
+                alert('Error de conexion con el servidor');
+                provisioning = false;
+                btnProvision.disabled = false;
+                btnProvision.innerHTML = '&#9654; Provisionar';
+            }
+        }
+
+        // ── Destroy VM ──
+        async function destroyVM() {
+            if (provisioning) return;
+            if (!confirm('Esto destruira la VM y todos los recursos. Continuar?')) return;
+
+            resetAllCards();
+            connectSSE();
+
+            try {
+                await fetch('/api/destroy', { method: 'POST' });
+                btnDestroy.disabled = true;
+            } catch (err) {
+                alert('Error de conexion con el servidor');
+            }
+        }
+
+        // ── Helpers ──
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+
+</html>
