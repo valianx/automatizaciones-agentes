@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pokédex Chat — Profesor Oak</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23dd2a3b' stroke='%23222' stroke-width='4'/><rect x='2' y='46' width='96' height='8' fill='%23222'/><circle cx='50' cy='50' r='16' fill='%23222'/><circle cx='50' cy='50' r='10' fill='%23fff'/><path d='M2 50 A48 48 0 0 0 98 50' fill='%23fff'/><rect x='2' y='46' width='96' height='8' fill='%23222'/><circle cx='50' cy='50' r='16' fill='%23222'/><circle cx='50' cy='50' r='10' fill='%23fff'/></svg>">
     <meta name="description"
         content="Chatea con el Profesor Oak, el experto mundial en Pokémon. Pregunta estadísticas, tipos y datos de cualquier Pokémon.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -404,8 +405,9 @@
 
         .header-avatar img {
             width: 100%;
-            height: auto;
-            image-rendering: pixelated;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
         }
 
         .header-info h1 {
@@ -875,9 +877,8 @@
                 <!-- Header -->
                 <div class="header">
                     <div class="header-avatar">
-                        <!-- Pixel art pokedex icon -->
-                        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/pokedex.png"
-                            alt="Pokedex">
+                        <img src="https://yt3.googleusercontent.com/rctSS0qmDZOev3BtC6ZyNzHQ321HT-4JsVZRtplec5OxbKzbG-fhvK0qgkIoatSgDH_PWT-aew=s900-c-k-c0x00ffffff-no-rj"
+                            alt="Profesor Oak">
                     </div>
                     <div class="header-info">
                         <h1>Sist. Prof Oak</h1>
@@ -892,17 +893,7 @@
                         <h2>SISTEMA INICIADO</h2>
                         <p>Analizador de datos Pokémon activo. Conectado al mainframe del Prof. Oak. Ingrese parámetro
                             de búsqueda.</p>
-                        <div class="suggestions">
-                            <button class="suggestion-chip"
-                                data-message="¿Cuáles son las estadísticas de Pikachu?">DATOS: PIKACHU</button>
-                            <button class="suggestion-chip"
-                                data-message="¿Qué tipo es Charizard y cuánto pesa?">ESPECIE: CHARIZARD</button>
-                            <button class="suggestion-chip" data-message="Compara a Gengar contra Alakazam">COMPARAR:
-                                GENGAR / ALAKAZAM</button>
-                            <button class="suggestion-chip"
-                                data-message="¿Cuál es el Pokémon más pesado de la primera generación?">QUERY: MAYOR
-                                MASA GEN 1</button>
-                        </div>
+                        <div class="suggestions" id="suggestions"></div>
                     </div>
                 </div>
 
@@ -962,18 +953,50 @@
                     <div class="welcome-pokeball">Ϟ</div>
                     <h2>SISTEMA INICIADO</h2>
                     <p>Analizador de datos Pokémon activo. Conectado al mainframe del Prof. Oak. Ingrese parámetro de búsqueda.</p>
-                    <div class="suggestions">
-                        <button class="suggestion-chip" data-message="¿Cuáles son las estadísticas de Pikachu?">DATOS: PIKACHU</button>
-                        <button class="suggestion-chip" data-message="¿Qué tipo es Charizard y cuánto pesa?">ESPECIE: CHARIZARD</button>
-                        <button class="suggestion-chip" data-message="Compara a Gengar contra Alakazam">COMPARAR: GENGAR / ALAKAZAM</button>
-                        <button class="suggestion-chip" data-message="¿Cuál es el Pokémon más pesado de la primera generación?">QUERY: MAYOR MASA GEN 1</button>
-                    </div>
+                    <div class="suggestions" id="suggestions"></div>
                 </div>
             `;
-            bindSuggestionChips();
+            renderSuggestions();
             highlightActiveConversation();
             messageInput.focus();
         }
+
+        // ── Suggestions pool (20 options, show 4 random) ──
+        const allSuggestions = [
+            { label: 'DATOS: PIKACHU', message: '¿Cuáles son las estadísticas de Pikachu?' },
+            { label: 'ESPECIE: CHARIZARD', message: '¿Qué tipo es Charizard y cuánto pesa?' },
+            { label: 'COMPARAR: GENGAR / ALAKAZAM', message: 'Compara a Gengar contra Alakazam' },
+            { label: 'QUERY: MAYOR MASA GEN 1', message: '¿Cuál es el Pokémon más pesado de la primera generación?' },
+            { label: 'EVOLUCIÓN: EEVEE', message: '¿Cuáles son todas las evoluciones de Eevee y sus tipos?' },
+            { label: 'DATOS: MEWTWO', message: '¿Cuáles son las estadísticas y habilidades de Mewtwo?' },
+            { label: 'TIPO: DRAGÓN', message: '¿Qué Pokémon de tipo Dragón existen en la primera generación?' },
+            { label: 'COMPARAR: BLASTOISE / VENUSAUR', message: 'Compara a Blastoise contra Venusaur' },
+            { label: 'ESPECIE: SNORLAX', message: '¿Cuánto pesa Snorlax y cuáles son sus estadísticas?' },
+            { label: 'QUERY: MÁS RÁPIDO GEN 1', message: '¿Cuál es el Pokémon más rápido de la primera generación?' },
+            { label: 'DATOS: GYARADOS', message: 'Dame todos los datos de Gyarados' },
+            { label: 'HABILIDAD: DITTO', message: '¿Qué habilidades tiene Ditto y cómo funcionan?' },
+            { label: 'ESPECIE: LUCARIO', message: '¿Qué tipo es Lucario y cuáles son sus stats?' },
+            { label: 'COMPARAR: MACHAMP / HITMONLEE', message: 'Compara a Machamp contra Hitmonlee' },
+            { label: 'DATOS: GARDEVOIR', message: '¿Cuáles son las estadísticas de Gardevoir?' },
+            { label: 'QUERY: LEGENDARIOS GEN 1', message: '¿Cuáles son todos los Pokémon legendarios de la primera generación?' },
+            { label: 'EVOLUCIÓN: MAGIKARP', message: '¿Cómo evoluciona Magikarp y qué tan fuerte es Gyarados?' },
+            { label: 'TIPO: FANTASMA', message: '¿Qué Pokémon de tipo Fantasma hay y contra qué son efectivos?' },
+            { label: 'DATOS: DRAGONITE', message: 'Dame las estadísticas completas de Dragonite' },
+            { label: 'QUERY: MENOR DEFENSA', message: '¿Cuál es el Pokémon con menor defensa de todos?' },
+        ];
+
+        function renderSuggestions() {
+            const container = document.getElementById('suggestions');
+            if (!container) return;
+            const shuffled = [...allSuggestions].sort(() => Math.random() - 0.5);
+            const picked = shuffled.slice(0, 4);
+            container.innerHTML = picked.map(s =>
+                `<button class="suggestion-chip" data-message="${s.message}">${s.label}</button>`
+            ).join('');
+            bindSuggestionChips();
+        }
+
+        renderSuggestions();
 
         // ── Suggestion chips ──
         function bindSuggestionChips() {
@@ -985,7 +1008,6 @@
                 });
             });
         }
-        bindSuggestionChips();
 
         chatForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -995,6 +1017,8 @@
         });
 
         async function sendMessage(text) {
+            if (isLoading) return;
+
             // Hide welcome
             const welcomeEl = document.getElementById('welcome');
             if (welcomeEl) welcomeEl.style.display = 'none';
