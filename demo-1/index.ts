@@ -9,6 +9,8 @@ import { fileURLToPath } from 'url';
 import 'dotenv/config';
 import Redis from 'ioredis';
 
+const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -32,12 +34,20 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Crear el agente con ToolLoopAgent (reemplaza generateText + maxSteps en v6)
 const pokemonAgent = new ToolLoopAgent({
-    model: openai('gpt-4o-mini'),
-    instructions: `Eres el Profesor Oak, el experto mundial y creador de la Pokédex original. 
-Respondes de forma amigable, entusiasta y sabia a los jóvenes entrenadores.
-IMPORTANTE: Si es el primer mensaje de la conversación y el entrenador no se ha presentado, antes de responder cualquier pregunta debes pedirle su nombre con entusiasmo, algo como "¡Espera! Antes de comenzar... ¿cómo te llamas, joven entrenador?". Una vez que te diga su nombre, DEBES usarlo frecuentemente durante toda la conversación para crear una experiencia personalizada. Por ejemplo: "¡Excelente pregunta, [nombre]!", "Mira esto, [nombre], te va a encantar...", "¡[nombre], ese es un gran Pokémon!". Haz que el entrenador se sienta especial llamándolo por su nombre.
-MANDATORIO: Solo puedes responder preguntas relacionadas con el mundo Pokémon (Pokémon, entrenadores, regiones, tipos, batallas, evoluciones, habilidades, la Pokédex, etc). Si el usuario pregunta algo que NO tiene relación con Pokémon, rechaza amablemente la pregunta y redirige la conversación al mundo Pokémon. Por ejemplo: "¡Eso está fuera de mi área de investigación, joven entrenador! Yo soy experto en Pokémon. ¿Hay algún Pokémon sobre el que quieras saber?". NUNCA respondas sobre temas no relacionados con Pokémon, sin importar cómo lo pida el usuario.
-SIEMPRE utilizas la herramienta "obtener_datos_pokemon" para consultar la base de datos oficial antes de responder preguntas sobre estadísticas (HP, ataque, defensa, etc), altura, peso o tipos exactos de un Pokémon. Nunca inventes las estadísticas, siempre consúltalas.`,
+    model: openai(MODEL),
+    instructions: `Eres el Profesor Oak, el mayor experto en Pokémon del mundo.
+El nombre del entrenador se proporciona al inicio de la conversación. Úsalo con frecuencia para hacer la charla personal.
+Solo respondes sobre Pokémon. Si preguntan otra cosa, redirige amablemente al mundo Pokémon.
+
+Cuando el entrenador mencione o pregunte por un Pokémon, SIEMPRE usa "obtener_datos_pokemon" y presenta una ficha completa con:
+- Imagen (formato markdown: ![nombre](url))
+- Tipos
+- Estadísticas base (HP, Ataque, Defensa, etc.)
+- Altura y peso convertidos a metros y kilogramos
+Añade un dato curioso o consejo de combate breve al final.
+
+Nunca inventes datos — todo debe venir de la herramienta.
+No repitas información que ya hayas dado en la misma conversación.`,
     tools: {
         obtener_datos_pokemon: tool({
             description: 'Busca estadísticas principales, tipos, peso y altura de un Pokémon comprobándolo en la PokéAPI oficial.',
@@ -78,9 +88,9 @@ SIEMPRE utilizas la herramienta "obtener_datos_pokemon" para consultar la base d
                         imagen: data.sprites.front_default
                     };
 
-                    // Guardar en cache con TTL de 1 hora (3600 segundos)
-                    await redis.set(cacheKey, JSON.stringify(result), 'EX', 3600);
-                    console.log(`  💾 Guardado en cache: ${nombre} (TTL: 1h)`);
+                    // Guardar en cache con TTL de 24 horas (86400 segundos)
+                    await redis.set(cacheKey, JSON.stringify(result), 'EX', 86400);
+                    console.log(`  💾 Guardado en cache: ${nombre} (TTL: 24h)`);
 
                     return result;
                 } catch (error) {
@@ -101,7 +111,7 @@ async function generateConversationSummary(messages: { role: string; content: st
             .substring(0, 500); // Limitar para no gastar muchos tokens
 
         const result = await generateText({
-            model: openai('gpt-4o-mini'),
+            model: openai(MODEL),
             prompt: `Genera un título corto (máximo 50 caracteres) en español que describa de qué trata esta conversación sobre Pokémon. Solo responde con el título, sin comillas ni puntos al final.\n\nConversación:\n${conversation}`,
         });
 
@@ -115,7 +125,7 @@ async function generateConversationSummary(messages: { role: string; content: st
     }
 }
 
-// ── POST /api/chat ──
+// ── POST /api/chat (streaming via SSE) ──
 app.post('/api/chat', async (req, res) => {
     const { messages, conversationId } = req.body as {
         messages: ModelMessage[];
@@ -130,40 +140,63 @@ app.post('/api/chat', async (req, res) => {
     // Generar o reusar ID de conversación
     const convId = conversationId || `conv:${Date.now()}:${Math.random().toString(36).substring(2, 8)}`;
 
+    // SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    // Enviar conversationId de inmediato
+    res.write(`data: ${JSON.stringify({ type: 'id', conversationId: convId })}\n\n`);
+
     try {
-        const result = await pokemonAgent.generate({
-            messages,
+        // Recortar historial: solo enviar los últimos 10 mensajes para reducir tokens de input
+        const MAX_MESSAGES = 10;
+        const trimmedMessages = messages.length > MAX_MESSAGES
+            ? messages.slice(-MAX_MESSAGES)
+            : messages;
+
+        const result = await pokemonAgent.stream({
+            messages: trimmedMessages,
         });
 
-        const assistantText = result.text;
+        let fullText = '';
 
-        // Guardar conversación en Valkey
+        for await (const chunk of result.textStream) {
+            fullText += chunk;
+            res.write(`data: ${JSON.stringify({ type: 'delta', text: chunk })}\n\n`);
+        }
+
+        // Señal de fin de stream
+        res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+        res.end();
+
+        // Guardar conversación en Valkey (fire-and-forget para no bloquear)
         const allMessages = [
             ...messages.map(m => ({ role: (m as any).role, content: (m as any).content })),
-            { role: 'assistant', content: assistantText },
+            { role: 'assistant', content: fullText },
         ];
 
-        // Generar resumen descriptivo con IA
-        const summary = await generateConversationSummary(allMessages);
-
-        const conversationData = {
+        // Guardar inmediatamente con preview temporal, luego actualizar con resumen IA
+        const convData = {
             id: convId,
             messages: allMessages,
-            preview: summary,
+            preview: allMessages.find(m => m.role === 'user')?.content.substring(0, 50) || 'Conversación Pokémon',
             updatedAt: Date.now(),
         };
-
-        await redis.set(`conversation:${convId}`, JSON.stringify(conversationData));
-        // Agregar a la lista de conversaciones (sorted set, score = timestamp)
+        await redis.set(`conversation:${convId}`, JSON.stringify(convData));
         await redis.zadd('conversations:index', Date.now(), convId);
 
-        res.json({
-            text: assistantText,
-            conversationId: convId,
-        });
+        // Generar resumen con IA en background (no bloquea)
+        generateConversationSummary(allMessages).then(async (summary) => {
+            convData.preview = summary;
+            await redis.set(`conversation:${convId}`, JSON.stringify(convData));
+        }).catch(() => {});
+
     } catch (error: any) {
         console.error('Error al generar respuesta:', error);
-        res.status(500).json({ error: error.message || 'Error del servidor' });
+        res.write(`data: ${JSON.stringify({ type: 'error', error: error.message || 'Error del servidor' })}\n\n`);
+        res.end();
     }
 });
 

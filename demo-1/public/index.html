@@ -5,9 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pokédex Chat — Profesor Oak</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23dd2a3b' stroke='%23222' stroke-width='4'/><rect x='2' y='46' width='96' height='8' fill='%23222'/><circle cx='50' cy='50' r='16' fill='%23222'/><circle cx='50' cy='50' r='10' fill='%23fff'/><path d='M2 50 A48 48 0 0 0 98 50' fill='%23fff'/><rect x='2' y='46' width='96' height='8' fill='%23222'/><circle cx='50' cy='50' r='16' fill='%23222'/><circle cx='50' cy='50' r='10' fill='%23fff'/></svg>">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23dd2a3b' stroke='%23222' stroke-width='4'/><rect x='2' y='46' width='96' height='8' fill='%23222'/><circle cx='50' cy='50' r='16' fill='%23222'/><circle cx='50' cy='50' r='10' fill='%23fff'/><path d='M2 50 A48 48 0 0 0 98 50' fill='%23fff'/><rect x='2' y='46' width='96' height='8' fill='%23222'/><circle cx='50' cy='50' r='16' fill='%23222'/><circle cx='50' cy='50' r='10' fill='%23fff'/></svg>">
     <meta name="description"
         content="Chatea con el Profesor Oak, el experto mundial en Pokémon. Pregunta estadísticas, tipos y datos de cualquier Pokémon.">
+    <link rel="preconnect" href="https://api.openai.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -557,9 +559,15 @@
             padding: 16px 20px;
             border-radius: 12px;
             font-size: 0.95rem;
-            line-height: 1.6;
+            line-height: 1.4;
             font-weight: 400;
             position: relative;
+        }
+
+        .message-content br {
+            display: block;
+            content: "";
+            margin: 1px 0;
         }
 
         .message.assistant .message-content {
@@ -600,7 +608,7 @@
 
         /* Typed out Poke-Stats / Styling */
         .message-content p {
-            margin-bottom: 12px;
+            margin-bottom: 4px;
         }
 
         .message-content p:last-child {
@@ -618,12 +626,12 @@
 
         .message-content ul {
             padding-left: 0;
-            margin: 12px 0;
+            margin: 4px 0;
             list-style: none;
         }
 
         .message-content li {
-            margin-bottom: 6px;
+            margin-bottom: 2px;
             padding-left: 20px;
             position: relative;
             font-family: 'Chakra Petch', sans-serif;
@@ -648,8 +656,8 @@
             letter-spacing: 1px;
             border-bottom: 1px solid rgba(0, 202, 230, 0.2);
             padding-bottom: 4px;
-            margin-top: 16px;
-            margin-bottom: 10px;
+            margin-top: 8px;
+            margin-bottom: 4px;
         }
 
         /* Pokemon image in messages */
@@ -666,41 +674,33 @@
 
         /* Typing indicator */
         .typing-indicator {
-            display: flex;
-            gap: 6px;
             padding: 8px 4px;
+            color: var(--pd-lens-blue);
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            display: flex;
             align-items: center;
+            gap: 8px;
+            animation: pulse-text 1.5s ease-in-out infinite;
         }
 
-        .typing-indicator span {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--pd-lens-blue);
-            animation: bounce 1.4s ease-in-out infinite;
+        .typing-indicator::before {
+            content: '▶';
+            font-size: 0.8em;
         }
 
-        .typing-indicator span:nth-child(2) {
-            animation-delay: 0.15s;
-        }
-
-        .typing-indicator span:nth-child(3) {
-            animation-delay: 0.3s;
-        }
-
-        @keyframes bounce {
+        @keyframes pulse-text {
 
             0%,
-            60%,
             100% {
-                transform: translateY(0);
-                opacity: 0.4;
+                opacity: 0.5;
+                text-shadow: none;
             }
 
-            30% {
-                transform: translateY(-6px);
+            50% {
                 opacity: 1;
-                box-shadow: 0 0 10px var(--pd-lens-blue);
+                text-shadow: 0 0 8px var(--pd-lens-blue);
             }
         }
 
@@ -814,6 +814,98 @@
             box-shadow: 0 1px 1px rgba(255, 255, 255, 0.1);
         }
 
+        /* ── Name Modal ── */
+        .name-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .name-modal {
+            background: linear-gradient(145deg, var(--pd-red), var(--pd-red-dark));
+            border-radius: 20px;
+            padding: 40px;
+            width: 400px;
+            max-width: 90vw;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), inset 0 0 0 2px rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .name-modal .modal-lens {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #fff, var(--pd-lens-blue) 40%, #007d8f);
+            box-shadow: 0 0 20px var(--pd-lens-glow);
+            margin: 0 auto 20px;
+        }
+
+        .name-modal h2 {
+            font-family: 'Chakra Petch', sans-serif;
+            color: #fff;
+            font-size: 1.3rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .name-modal p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+        }
+
+        .name-modal input {
+            width: 100%;
+            padding: 14px 20px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1.1rem;
+            font-family: 'Outfit', sans-serif;
+            outline: none;
+            text-align: center;
+            transition: border-color 0.3s;
+        }
+
+        .name-modal input:focus {
+            border-color: var(--pd-lens-blue);
+            box-shadow: 0 0 15px rgba(0, 202, 230, 0.3);
+        }
+
+        .name-modal input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .name-modal button {
+            margin-top: 16px;
+            padding: 12px 32px;
+            background: var(--pd-lens-blue);
+            border: none;
+            border-radius: 8px;
+            color: #000;
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 3px 0 #007d8f;
+        }
+
+        .name-modal button:hover {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #007d8f;
+            background: #00e5ff;
+        }
+
         /* ── Responsive ── */
         @media (max-width: 900px) {
             .app-container {
@@ -842,6 +934,19 @@
 </head>
 
 <body>
+    <!-- Name Modal -->
+    <div class="name-overlay" id="name-overlay" style="display:none;">
+        <div class="name-modal">
+            <div class="modal-lens"></div>
+            <h2>Registro de Entrenador</h2>
+            <p>El Prof. Oak necesita identificarte antes de acceder a la Pokédex.</p>
+            <form id="name-form">
+                <input type="text" id="trainer-name-input" placeholder="Tu nombre, entrenador..." autocomplete="off" maxlength="30" autofocus>
+                <button type="submit">Iniciar Sesión</button>
+            </form>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Pokedex Hardware Header -->
         <div class="hardware-header">
@@ -877,7 +982,7 @@
                 <!-- Header -->
                 <div class="header">
                     <div class="header-avatar">
-                        <img src="https://yt3.googleusercontent.com/rctSS0qmDZOev3BtC6ZyNzHQ321HT-4JsVZRtplec5OxbKzbG-fhvK0qgkIoatSgDH_PWT-aew=s900-c-k-c0x00ffffff-no-rj"
+                        <img src="https://easycdn.es/1/imagenes/fran_342974.jpg"
                             alt="Profesor Oak">
                     </div>
                     <div class="header-info">
@@ -934,6 +1039,24 @@
         let conversationMessages = [];
         let currentConversationId = null;
         let isLoading = false;
+        let trainerName = '';
+
+        // ── Name modal ──
+        const nameOverlay = document.getElementById('name-overlay');
+        const nameForm = document.getElementById('name-form');
+        const trainerNameInput = document.getElementById('trainer-name-input');
+
+        nameOverlay.style.display = 'flex';
+        setTimeout(() => trainerNameInput.focus(), 100);
+
+        nameForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = trainerNameInput.value.trim();
+            if (!name) return;
+            trainerName = name;
+            nameOverlay.style.display = 'none';
+            messageInput.focus();
+        });
 
         // ── Init ──
         loadConversations();
@@ -1035,8 +1158,17 @@
             const typingEl = showTyping();
 
             try {
+                // Inyectar nombre del entrenador en el primer mensaje de conversaciones nuevas
+                let apiMessages = conversationMessages;
+                if (!currentConversationId && trainerName && conversationMessages.length === 1) {
+                    apiMessages = [{
+                        ...conversationMessages[0],
+                        content: `El entrenador ${trainerName} pregunta: ${conversationMessages[0].content}`,
+                    }];
+                }
+
                 const body = {
-                    messages: conversationMessages,
+                    messages: apiMessages,
                 };
                 if (currentConversationId) {
                     body.conversationId = currentConversationId;
@@ -1053,25 +1185,68 @@
                     throw new Error(err.error || 'Error del servidor');
                 }
 
-                const data = await response.json();
-                const assistantText = data.text;
-                currentConversationId = data.conversationId;
+                // Stream SSE response
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let rawText = '';
+                let streamingEl = null;
+                let buffer = '';
 
-                typingEl.remove();
-                appendMessage('assistant', assistantText);
-                conversationMessages.push({ role: 'assistant', content: assistantText });
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-                // Refresh sidebar
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // keep incomplete line in buffer
+
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        const json = JSON.parse(line.slice(6));
+
+                        if (json.type === 'id') {
+                            currentConversationId = json.conversationId;
+                        } else if (json.type === 'delta') {
+                            if (!streamingEl) {
+                                removeTyping(typingEl);
+                                streamingEl = appendStreamingMessage();
+                            }
+                            rawText += json.text;
+                            streamingEl.innerHTML = formatText(rawText);
+                            scrollToBottom();
+                        } else if (json.type === 'error') {
+                            throw new Error(json.error);
+                        }
+                    }
+                }
+
+                if (!streamingEl) {
+                    removeTyping(typingEl);
+                    appendMessage('assistant', rawText || '⚠️ Respuesta vacía');
+                }
+
+                conversationMessages.push({ role: 'assistant', content: rawText });
                 loadConversations();
 
             } catch (error) {
-                typingEl.remove();
+                removeTyping(typingEl);
                 appendMessage('assistant', `⚠️ Error del Sistema: ${error.message}`);
             } finally {
                 isLoading = false;
                 sendButton.disabled = false;
                 messageInput.focus();
             }
+        }
+
+        function appendStreamingMessage() {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'message assistant';
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            wrapper.appendChild(content);
+            messagesContainer.appendChild(wrapper);
+            scrollToBottom();
+            return content;
         }
 
         // ── Load conversation history ──
@@ -1190,6 +1365,21 @@
             scrollToBottom();
         }
 
+        const loadingPhrases = [
+            'Consultando la Pokédex nacional...',
+            'Conectando con el laboratorio de Pueblo Paleta...',
+            'Buscando registros en la región de Paldea...',
+            'Escaneando datos en el Centro Pokémon...',
+            'Accediendo a la base de datos del Prof. Oak...',
+            'Rastreando señal desde la Liga Pokémon...',
+            'Descargando datos de la Torre de Batalla...',
+            'Sincronizando con el PC de Bill...',
+            'Analizando datos desde la región de Kanto...',
+            'Descifrando registros del Monte Plateado...',
+        ];
+
+        let typingInterval = null;
+
         function showTyping() {
             const wrapper = document.createElement('div');
             wrapper.className = 'message assistant';
@@ -1197,15 +1387,31 @@
             const content = document.createElement('div');
             content.className = 'message-content';
             content.innerHTML = `
-                <div class="typing-indicator">
-                    <span></span><span></span><span></span>
-                </div>
+                <div class="typing-indicator">${loadingPhrases[Math.floor(Math.random() * loadingPhrases.length)]}</div>
             `;
 
             wrapper.appendChild(content);
             messagesContainer.appendChild(wrapper);
             scrollToBottom();
+
+            const indicator = content.querySelector('.typing-indicator');
+            let lastIndex = -1;
+            typingInterval = setInterval(() => {
+                let idx;
+                do { idx = Math.floor(Math.random() * loadingPhrases.length); } while (idx === lastIndex);
+                lastIndex = idx;
+                indicator.textContent = loadingPhrases[idx];
+            }, 5000);
+
             return wrapper;
+        }
+
+        function removeTyping(wrapper) {
+            if (typingInterval) {
+                clearInterval(typingInterval);
+                typingInterval = null;
+            }
+            if (wrapper) wrapper.remove();
         }
 
         function formatText(text) {

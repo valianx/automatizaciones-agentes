@@ -117,12 +117,23 @@ ${previousReports}`;
             ? 'Procede con la instalacion y configuracion. Ejecuta TODOS los pasos en orden y termina con verify_installation.'
             : `INTENTO ${attempt}/3. En el intento anterior se ejecutaron: [${previousTools.join(', ')}] pero la verificacion no fue exitosa. Ejecuta los pasos que falten y termina con verify_installation.`;
 
-        await generateText({
+        const result = await generateText({
             model: openai(modelId),
             system: fullSystemPrompt,
             prompt,
             stopWhen: stepCountIs(steps),
             tools: allTools,
+        });
+
+        const inputTokens = result.totalUsage?.inputTokens ?? 0;
+        const outputTokens = result.totalUsage?.outputTokens ?? 0;
+        emit(`Tokens: ${inputTokens.toLocaleString()} in / ${outputTokens.toLocaleString()} out`);
+        eventBus.emitEvent({
+            agentId,
+            type: 'log',
+            message: 'token-usage',
+            timestamp: Date.now(),
+            tokenUsage: { inputTokens, outputTokens },
         });
 
         return tracker.verificationPassed;

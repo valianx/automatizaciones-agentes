@@ -19,4 +19,5 @@ export interface AgentEvent {
     message: string;
     timestamp: number;
     progress?: number | undefined; // 0-100
+    tokenUsage?: { inputTokens: number; outputTokens: number } | undefined;
 }

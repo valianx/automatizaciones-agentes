@@ -81,53 +81,65 @@ export class Orchestrator {
                 { id: 'pnpm', name: 'pnpm', factory: () => new PnpmAgent(), dependsOn: 'nodejs' },
             ];
 
-            const verified = new Set<AgentId>();
+            // Reactive model: each agent gets a deferred promise.
+            // Dependent agents await their dependency's promise instead of waiting for the entire round.
+            const deferreds = new Map<AgentId, { resolve: (ok: boolean) => void; promise: Promise<boolean> }>();
+            for (const agent of agents) {
+                let resolve!: (ok: boolean) => void;
+                const promise = new Promise<boolean>(r => { resolve = r; });
+                deferreds.set(agent.id, { resolve, promise });
+            }
 
-            for (let round = 1; round <= MAX_ROUNDS; round++) {
-                // Select agents to run this round
-                const toRun = agents.filter(({ id, dependsOn }) => {
-                    if (verified.has(id)) return false; // already verified
-                    if (dependsOn && !verified.has(dependsOn)) return false; // dependency not met
-                    return true;
-                });
-
-                if (toRun.length === 0) break;
-
-                if (round > 1) {
-                    const names = toRun.map(a => a.name).join(', ');
-                    this.emit(`Ronda ${round}/${MAX_ROUNDS}: reintentando ${names}...`, undefined, 40 + round * 15);
+            const tasks = agents.map(async ({ id, name, factory, dependsOn }) => {
+                // Wait for dependency to complete (resolves instantly for independent agents)
+                if (dependsOn) {
+                    const depOk = await deferreds.get(dependsOn)!.promise;
+                    if (!depOk) {
+                        this.emitAgent(id, `${name}: no se ejecuto (${dependsOn} no esta disponible)`, 'error');
+                        deferreds.get(id)!.resolve(false);
+                        return;
+                    }
                 }
 
-                await Promise.allSettled(
-                    toRun.map(async ({ id, name, factory }) => {
-                        try {
-                            const agent = factory();
-                            const ok = await agent.run();
-                            if (ok) {
-                                verified.add(id);
-                                this.emitAgent(id, `${name} completado`, 'success', 100);
-                            } else {
-                                this.emitAgent(id, `${name}: verificacion no exitosa (ronda ${round})`, round < MAX_ROUNDS ? undefined : 'error');
-                            }
-                        } catch (err: any) {
-                            this.emitAgent(id, `${name}: error - ${err.message}`, round < MAX_ROUNDS ? undefined : 'error');
+                // Retry loop per agent
+                for (let round = 1; round <= MAX_ROUNDS; round++) {
+                    if (round > 1) {
+                        this.emitAgent(id, `${name}: reintentando (ronda ${round}/${MAX_ROUNDS})...`);
+                    }
+                    try {
+                        const agent = factory();
+                        const ok = await agent.run();
+                        if (ok) {
+                            deferreds.get(id)!.resolve(true);
+                            this.emitAgent(id, `${name} completado`, 'success', 100);
+                            return;
                         }
-                    })
-                );
-            }
-
-            // ═══════════════════════════════════════════════════
-            // Mark agents that never ran (dependency failed)
-            // ═══════════════════════════════════════════════════
-            for (const { id, name, dependsOn } of agents) {
-                if (!verified.has(id) && dependsOn && !verified.has(dependsOn)) {
-                    this.emitAgent(id, `${name}: no se ejecuto (${dependsOn} no esta disponible)`, 'error');
+                        if (round < MAX_ROUNDS) {
+                            this.emitAgent(id, `${name}: verificacion no exitosa (ronda ${round})`);
+                        }
+                    } catch (err: any) {
+                        if (round < MAX_ROUNDS) {
+                            this.emitAgent(id, `${name}: error - ${err.message}`);
+                        } else {
+                            this.emitAgent(id, `${name}: error - ${err.message}`, 'error');
+                        }
+                    }
                 }
-            }
+
+                // All rounds exhausted
+                deferreds.get(id)!.resolve(false);
+                this.emitAgent(id, `${name}: fallo tras ${MAX_ROUNDS} intentos`, 'error');
+            });
+
+            await Promise.allSettled(tasks);
 
             // ═══════════════════════════════════════════════════
             // RESUMEN FINAL
             // ═══════════════════════════════════════════════════
+            const verified = new Set<AgentId>();
+            for (const [id, { promise }] of deferreds) {
+                if (await promise) verified.add(id);
+            }
             const failedAgents = agents.filter(a => !verified.has(a.id));
 
             if (failedAgents.length > 0) {

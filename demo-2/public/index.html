@@ -418,6 +418,60 @@
             color: var(--green-primary);
         }
 
+        /* ── Token Cost ── */
+        .token-cost {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            display: none;
+            font-family: var(--font-mono);
+        }
+
+        .token-cost.visible {
+            display: block;
+        }
+
+        .token-cost h3 {
+            font-size: 0.85rem;
+            color: var(--blue-info);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .token-cost-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .token-stat {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .token-stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .token-stat-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .token-stat-value.cost {
+            color: var(--green-primary);
+        }
+
         /* ── Responsive ── */
         @media (max-width: 1000px) {
             .agents-grid {
@@ -718,12 +772,42 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Token Cost (visible after success) -->
+        <div class="token-cost" id="token-cost">
+            <h3>&#9889; Consumo de tokens (gpt-5-nano)</h3>
+            <div class="token-cost-grid">
+                <div class="token-stat">
+                    <div class="token-stat-label">Input tokens</div>
+                    <div class="token-stat-value" id="total-input-tokens">0</div>
+                </div>
+                <div class="token-stat">
+                    <div class="token-stat-label">Output tokens</div>
+                    <div class="token-stat-value" id="total-output-tokens">0</div>
+                </div>
+                <div class="token-stat">
+                    <div class="token-stat-label">Total tokens</div>
+                    <div class="token-stat-value" id="total-tokens">0</div>
+                </div>
+                <div class="token-stat">
+                    <div class="token-stat-label">Costo total</div>
+                    <div class="token-stat-value cost" id="total-cost">$0.00</div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <script>
         let eventSource = null;
         let provisioning = false;
         const MAX_LOG_LINES = 5;
+
+        // Token usage accumulator
+        // gpt-5-nano: $0.05/1M input, $0.40/1M output
+        const PRICE_INPUT_PER_TOKEN = 0.05 / 1_000_000;
+        const PRICE_OUTPUT_PER_TOKEN = 0.40 / 1_000_000;
+        let totalInputTokens = 0;
+        let totalOutputTokens = 0;
 
         const btnProvision = document.getElementById('btn-provision');
         const btnDestroy = document.getElementById('btn-destroy');
@@ -786,6 +870,13 @@
             }
             logs.scrollTop = logs.scrollHeight;
 
+            // Accumulate token usage
+            if (event.tokenUsage) {
+                totalInputTokens += event.tokenUsage.inputTokens;
+                totalOutputTokens += event.tokenUsage.outputTokens;
+                updateTokenCostUI();
+            }
+
             // Check orchestrator completion (provisioning or destroy)
             if (agentId === 'orchestrator' && (status === 'success' || status === 'error')) {
                 provisioning = false;
@@ -794,12 +885,16 @@
                 btnDestroy.disabled = false;
                 btnDestroy.innerHTML = '&#10005; Destruir VM';
 
+                if (!message.includes('destruida')) {
+                    document.getElementById('token-cost').classList.add('visible');
+                }
                 if (status === 'success' && !message.includes('destruida')) {
                     connectionInfo.classList.add('visible');
                     btnDestroy.disabled = false;
                 }
                 if (message.includes('destruida')) {
                     connectionInfo.classList.remove('visible');
+                    document.getElementById('token-cost').classList.remove('visible');
                     btnDestroy.disabled = true;
                 }
             }
@@ -838,6 +933,10 @@
             btnDestroy.disabled = true;
 
             resetAllCards();
+            totalInputTokens = 0;
+            totalOutputTokens = 0;
+            updateTokenCostUI();
+            document.getElementById('token-cost').classList.remove('visible');
 
             // Conectar SSE PRIMERO, esperar a que este listo
             await connectSSE();
@@ -900,6 +999,16 @@
                     btn.innerHTML = '&#128203;';
                 }, 2000);
             });
+        }
+
+        // ── Token cost UI ──
+        function updateTokenCostUI() {
+            const total = totalInputTokens + totalOutputTokens;
+            const cost = (totalInputTokens * PRICE_INPUT_PER_TOKEN) + (totalOutputTokens * PRICE_OUTPUT_PER_TOKEN);
+            document.getElementById('total-input-tokens').textContent = totalInputTokens.toLocaleString();
+            document.getElementById('total-output-tokens').textContent = totalOutputTokens.toLocaleString();
+            document.getElementById('total-tokens').textContent = total.toLocaleString();
+            document.getElementById('total-cost').textContent = `$${cost.toFixed(4)}`;
         }
 
         // ── Helpers ──
@@ -974,8 +1083,32 @@
                 const res = await fetch('/api/vm-status');
                 const data = await res.json();
 
+                const vmExists = data.vm && data.vm !== 'not_found';
+
+                if (vmExists) {
+                    // VM existe (running, poweroff, saved, aborted, etc.) — permitir destruir
+                    btnDestroy.disabled = false;
+
+                    if (data.vm !== 'running') {
+                        // VM apagada/suspendida — mostrar estado en la card de VM
+                        const vmCard = document.querySelector('[data-agent="vm"]');
+                        if (vmCard) {
+                            vmCard.dataset.status = 'error';
+                            const badge = vmCard.querySelector('.agent-badge');
+                            badge.dataset.status = 'error';
+                            badge.textContent = data.vm.toUpperCase();
+
+                            const logs = vmCard.querySelector('.agent-logs');
+                            const line = document.createElement('div');
+                            line.className = 'log-line';
+                            const time = new Date().toLocaleTimeString('es', { hour12: false });
+                            line.innerHTML = `<span class="log-time">${time}</span>VM detectada en estado: ${data.vm}. Puedes destruirla o re-provisionar.`;
+                            logs.appendChild(line);
+                        }
+                    }
+                }
+
                 if (data.vm === 'running' && data.agentStates) {
-                    const vmName = data.name || 'unknown';
                     let hasAnySuccess = false;
 
                     // Restaurar estado real de cada agente
@@ -1009,7 +1142,6 @@
                     if (hasAnySuccess) {
                         connectionInfo.classList.add('visible');
                     }
-                    btnDestroy.disabled = false;
 
                     // Conectar SSE para recibir eventos de posibles retries
                     connectSSE();
